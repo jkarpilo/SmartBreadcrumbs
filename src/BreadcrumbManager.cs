@@ -34,30 +34,33 @@ namespace SmartBreadcrumbs
 
         #region Public Methods
 
-        public void Initialize(Assembly assembly)
+        public void Initialize(Assembly[] assemblies)
         {
             var entries = new Dictionary<string, BreadcrumbNodeEntry>();
 
-            foreach (var type in assembly.GetTypes())
+            foreach (var assembly in assemblies)
             {
-                // Razor pages
-                if (HasBreadcrumb(type, out BreadcrumbNodeEntry extractedEntry))
+                foreach (var type in assembly.GetTypes())
                 {
-                    entries.Add(extractedEntry.Key, extractedEntry);
-                    //No need to check the other IF and FOREACH when HasBreadcrumb returns true.
-                    continue;
-                }
+                    // Razor pages
+                    if (HasBreadcrumb(type, out BreadcrumbNodeEntry extractedEntry))
+                    {
+                        entries.Add(extractedEntry.Key, extractedEntry);
+                        //No need to check the other IF and FOREACH when HasBreadcrumb returns true.
+                        continue;
+                    }
 
-                // Controllers
-                if (TryGetBreadcrumbNodeEntry(type, out BreadcrumbNodeEntry controllerEntry))
-                {
-                    entries.Add(controllerEntry.Key, controllerEntry);
-                }
+                    // Controllers
+                    if (TryGetBreadcrumbNodeEntry(type, out BreadcrumbNodeEntry controllerEntry))
+                    {
+                        entries.Add(controllerEntry.Key, controllerEntry);
+                    }
 
-                // Controller actions
-                foreach (var entry in TryExtractingEntries(type))
-                {
-                    entries.Add(entry.Key, entry);
+                    // Controller actions
+                    foreach (var entry in TryExtractingEntries(type))
+                    {
+                        entries.Add(entry.Key, entry);
+                    }
                 }
             }
 

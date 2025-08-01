@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,27 +9,32 @@ namespace SmartBreadcrumbs.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-
-        public static void AddBreadcrumbs(this IServiceCollection services, Assembly assembly)
+        public static void AddBreadcrumbs(this IServiceCollection services, Func<Assembly, bool> assemblyFilter = null)
         {
-            AddBreadcrumbs(services, assembly, new BreadcrumbOptions());
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                                      .Where(a => !a.IsDynamic
+                                              && (assemblyFilter?.Invoke(a) ?? true));
+
+            AddBreadcrumbs(services, assemblies.ToArray());
         }
 
-        public static void AddBreadcrumbs(this IServiceCollection services, Assembly assembly, Action<BreadcrumbOptions> optionsSetter)
+        public static void AddBreadcrumbs(this IServiceCollection services, params Assembly[] assemblies)
+            => AddBreadcrumbs(services, new BreadcrumbOptions(), assemblies);
+
+        public static void AddBreadcrumbs(this IServiceCollection services, Action<BreadcrumbOptions> optionsSetter, params Assembly[] assemblies)
         {
             var options = new BreadcrumbOptions();
             optionsSetter.Invoke(options);
-            AddBreadcrumbs(services, assembly, options);
+            AddBreadcrumbs(services, options, assemblies);
         }
 
-        private static void AddBreadcrumbs(IServiceCollection services, Assembly assembly, BreadcrumbOptions options)
+        private static void AddBreadcrumbs(IServiceCollection services, BreadcrumbOptions options, params Assembly[] assemblies)
         {
             var bm = new BreadcrumbManager(options);
-            bm.Initialize(assembly);
+            bm.Initialize(assemblies);
             services.AddSingleton(bm);
 
             services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
         }
-
     }
 }
